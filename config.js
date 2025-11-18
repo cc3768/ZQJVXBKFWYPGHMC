@@ -10,8 +10,8 @@ const ROLES = Object.freeze({
 const POPULATION = {
     // Target minimums per room
     MIN_HARVESTERS: 3,
-    MIN_UPGRADERS:  3,
-    MIN_BUILDERS:   2,
+    MIN_UPGRADERS:  4,
+    MIN_BUILDERS:   1,
 
     // In an emergency (no harvesters), we want at least this many ASAP
     EMERGENCY_HARVESTERS: 2,
@@ -74,12 +74,22 @@ const ROADS = Object.freeze({
     TICK_INTERVAL: 5
 });
 
-
-
 const DEFENSE = Object.freeze({
     ENABLED: true,
-    START_RCL: 2,             // Start planning defenses at RCL 2+
-    MAX_SITES_PER_RUN: 10     // Safety cap so we don't spam too many sites at once
+    START_RCL: 3,                 // Start planning defenses once ramparts are allowed
+    MAX_RAMPART_SITES_PER_RUN: 8, // Ramparts per planning tick
+    MAX_TOWER_SITES_PER_RUN: 1,   // Towers are expensive, trickle-build them
+    REPAIR: Object.freeze({
+        MIN_TOWER_ENERGY: 300,     // Don't repair if towers are too low on energy
+        NON_WALL_THRESHOLD: 0.8,   // Repair other structures when below 80%
+        RAMPART_TARGET_HITS: 150000,
+        WALL_TARGET_HITS: 250000
+    })
+});
+
+const UPGRADE = Object.freeze({
+    STORAGE_ENERGY_THRESHOLD: 50000, // Start spawning bonus upgraders once storage is healthy
+    MAX_BONUS_UPGRADERS: 2
 });
 
 module.exports = {
@@ -88,5 +98,6 @@ module.exports = {
     SPAWN,
     PATHING,
     ROADS,
-    DEFENSE
+    DEFENSE,
+    UPGRADE
 };

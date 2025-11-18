@@ -22,7 +22,7 @@ module.exports = {
         }
 
         // --- 2) FILL SPAWN/EXTENSIONS ---
-        const needy = room.find(FIND_MY_STRUCTURES, {
+   const needy = room.find(FIND_MY_STRUCTURES, {
             filter: s =>
                 (s.structureType === STRUCTURE_SPAWN ||
                  s.structureType === STRUCTURE_EXTENSION) &&
@@ -31,6 +31,21 @@ module.exports = {
 
         if (needy.length) {
             const target = creep.pos.findClosestByPath(needy);
+            const res = creep.transfer(target, RESOURCE_ENERGY);
+
+            if (res === ERR_NOT_IN_RANGE) Pathing.moveTo(creep, target);
+            return;
+        }
+
+        // --- 2b) KEEP TOWERS FED ---
+        const towers = room.find(FIND_MY_STRUCTURES, {
+            filter: s =>
+                s.structureType === STRUCTURE_TOWER &&
+                s.store.getFreeCapacity(RESOURCE_ENERGY) > 0
+        });
+
+        if (towers.length) {
+            const target = creep.pos.findClosestByPath(towers);
             const res = creep.transfer(target, RESOURCE_ENERGY);
 
             if (res === ERR_NOT_IN_RANGE) Pathing.moveTo(creep, target);

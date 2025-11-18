@@ -2,6 +2,7 @@
 // Handles spawn decisions per spawn.
 
 const Config = require("config");
+const UpgradeConfig = Config.UPGRADE || {};
 
 /**
  * Calculate the total energy cost of a body array.
@@ -45,7 +46,8 @@ function attemptStandardSpawn(spawn, role) {
     const energyAvailable = room.energyAvailable;
     const energyCapacity  = room.energyCapacityAvailable;
 
-    const standardBody = Config.SPAWN.BODY[role.toLowerCase()];
+    const key = role.toLowerCase();
+    const standardBody = Config.SPAWN.BODY[key];
     let bodyToUse = standardBody;
 
     if (!standardBody) {
@@ -57,7 +59,7 @@ function attemptStandardSpawn(spawn, role) {
 
     // If standard body doesn't fit capacity, fall back to emergency (for that role)
     if (cost > energyCapacity) {
-        const emergencyBody = Config.SPAWN.EMERGENCY_BODY[role];
+        const emergencyBody = Config.SPAWN.EMERGENCY_BODY[key];
         if (emergencyBody) {
             const emergencyCost = bodyCost(emergencyBody);
             if (emergencyCost <= energyCapacity) {
@@ -102,7 +104,8 @@ function spawnEmergencyHarvester(spawn) {
     const room = spawn.room;
     const energyAvailable = room.energyAvailable;
 
-    const body = Config.SPAWN.EMERGENCY_BODY[Config.ROLES.HARVESTER];
+    const key = Config.ROLES.HARVESTER.toLowerCase();
+    const body = Config.SPAWN.EMERGENCY_BODY[key];
     if (!body) {
         console.log(`[Spawn ${spawn.name}] No emergency body defined for harvester`);
         return;
@@ -141,7 +144,6 @@ const SpawnManager = {
     run(spawn, creepsInRoom) {
         const room = spawn.room;
         if (!room || !room.controller || !room.controller.my) return;
-
         if (spawn.spawning) return;
 
         const creeps = creepsInRoom || room.find(FIND_MY_CREEPS);
@@ -153,6 +155,12 @@ const SpawnManager = {
 
         const energyAvailable = room.energyAvailable;
         const criticalEnergy  = energyAvailable < Config.POPULATION.MIN_ROOM_ENERGY_TO_SPAWN;
+        const storageEnergy   = room.storage ? room.storage.store[RESOURCE_ENERGY] : 0;
+        const upgradeThreshold =
+            UpgradeConfig.STORAGE_ENERGY_THRESHOLD !== undefined
+                ? UpgradeConfig.STORAGE_ENERGY_THRESHOLD
+                : Infinity;
+        const wantsUpgradeSurge = room.storage && storageEnergy >= upgradeThreshold;
 
         // ---------- EMERGENCY: NO HARVESTERS / NO CREEPS ----------
         if (creeps.length === 0 || counts[HARVESTER] === 0) {
@@ -183,9 +191,18 @@ const SpawnManager = {
             }
         }
 
-        // extra upgrader if we're healthy & below max
-        if (!roleToSpawn && creeps.length < maxCreeps && !criticalEnergy) {
-            roleToSpawn = UPGRADER;
+        // Extra upgrader pressure when healthy / storage is full
+        if (!roleToSpawn) {
+            const passiveBonus =
+                !criticalEnergy && creeps.length < maxCreeps ? 1 : 0;
+            const surgeBonus =
+                wantsUpgradeSurge ? (UpgradeConfig.MAX_BONUS_UPGRADERS || 0) : 0;
+            const targetUpgraders =
+                Config.POPULATION.MIN_UPGRADERS + passiveBonus + surgeBonus;
+
+            if (counts[UPGRADER] < targetUpgraders) {
+                roleToSpawn = UPGRADER;
+            }
         }
 
         if (!roleToSpawn) return;

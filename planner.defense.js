@@ -3,10 +3,14 @@
 // - RCL < 3: no automated defenses (engine is restrictive at low RCL)
 // - RCL >= 3: ramparts just inside all exits + towers near spawn
 
-const DEBUG = true;
+const Config = require('config');
+const DefenseConfig = Config.DEFENSE || {};
 
-const MAX_BORDER_SITES_PER_TICK = 12; // cap per tick for ramparts
-const MAX_TOWER_SITES_PER_TICK  = 1;  // usually one at a time
+const DEBUG = DefenseConfig.DEBUG === true;
+
+const MIN_RCL = DefenseConfig.START_RCL || 3;
+const MAX_BORDER_SITES_PER_TICK = DefenseConfig.MAX_RAMPART_SITES_PER_RUN || 12;
+const MAX_TOWER_SITES_PER_TICK  = DefenseConfig.MAX_TOWER_SITES_PER_RUN || 1;
 
 const DefensePlanner = {
     /**
@@ -19,12 +23,10 @@ const DefensePlanner = {
         if (!ctrl || !ctrl.my) return;
 
         const rcl = ctrl.level;
-        if (rcl < 3) {
-            // Below RCL3, the engine is very strict about defensive structures.
-            // We'll wait until RCL3 to avoid ERR_INVALID_TARGET spam.
+        if (!DefenseConfig.ENABLED || rcl < MIN_RCL) {
             if (DEBUG && Game.time % 100 === 0) {
                 console.log(
-                    `[DefensePlanner] RCL ${rcl} in ${room.name} < 3, skipping auto-defenses`
+                    `[DefensePlanner] defenses disabled or RCL ${rcl} < ${MIN_RCL} in ${room.name}`
                 );
             }
             return;

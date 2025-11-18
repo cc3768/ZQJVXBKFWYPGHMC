@@ -55,6 +55,20 @@ module.exports = {
             return;
         }
 
+        // 1b) Keep towers charged so defense/healing always works
+        const towerTargets = room.find(FIND_MY_STRUCTURES, {
+            filter: s =>
+                s.structureType === STRUCTURE_TOWER &&
+                s.store.getFreeCapacity(RESOURCE_ENERGY) > 0
+        });
+
+        if (towerTargets.length > 0) {
+            const target = creep.pos.findClosestByPath(towerTargets);
+            const res = creep.transfer(target, RESOURCE_ENERGY);
+            if (res === ERR_NOT_IN_RANGE) Pathing.moveTo(creep, target);
+            return;
+        }
+
         // 2) ECONOMY BUFFERS: containers + storage
         const econTargets = room.find(FIND_STRUCTURES, {
             filter: s =>

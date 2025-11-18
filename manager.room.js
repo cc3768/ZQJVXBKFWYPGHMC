@@ -2,8 +2,8 @@
 // Per-room orchestration: spawn logic, caching and basic logging.
 
 const SpawnManager = require("manager.spawn");
+const TowerManager = require("manager.tower");
 const MemoryUtil   = require("util.memory");
-
 const RoomManager = {
     /**
      * Main entry point, call once per tick.
@@ -25,6 +25,9 @@ const RoomManager = {
             for (let j = 0; j < spawns.length; j++) {
                 SpawnManager.run(spawns[j], creeps);
             }
+
+            // Operate towers (defense/repairs)
+            TowerManager.run(room);
 
             // Periodic logging and memory updates
             if (isLogTick) {
